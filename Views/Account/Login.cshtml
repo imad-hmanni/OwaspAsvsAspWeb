@@ -1,0 +1,50 @@
+@model LoginViewModel
+@{ ViewData["Title"] = "Connexion"; }
+
+<div class="row justify-content-center mt-4">
+    <div class="col-md-5">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-dark text-white text-center py-3">
+                <h5 class="mb-0">🔐 Connexion</h5>
+            </div>
+            <div class="card-body p-4">
+                <form asp-action="Login" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+
+                    <div asp-validation-summary="All" class="alert alert-danger py-2 small"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="Email" class="form-label fw-semibold"></label>
+                        <input asp-for="Email" class="form-control" placeholder="votre@email.com" />
+                        <span asp-validation-for="Email" class="text-danger small"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Password" class="form-label fw-semibold"></label>
+                        <input asp-for="Password" class="form-control" placeholder="••••••••" />
+                        <span asp-validation-for="Password" class="text-danger small"></span>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input asp-for="RememberMe" class="form-check-input" />
+                        <label asp-for="RememberMe" class="form-check-label"></label>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Se connecter</button>
+                </form>
+            </div>
+            <div class="card-footer text-center py-3 bg-light">
+                <span class="small text-muted">Pas encore de compte ?</span>
+                <a asp-controller="Account" asp-action="Register" class="small ms-1">S'inscrire</a>
+            </div>
+        </div>
+
+        <div class="card mt-3 border-info bg-info bg-opacity-10">
+            <div class="card-body py-2 small text-center">
+                <strong>Admin par défaut :</strong> admin@asvs-auditor.com / Admin@12345
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

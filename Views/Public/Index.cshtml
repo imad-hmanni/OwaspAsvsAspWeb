@@ -1,0 +1,92 @@
+@model List<Category>
+@{
+    ViewData["Title"] = "Référentiel OWASP ASVS";
+    int totalItems = Model.SelectMany(c => c.SubCategories).SelectMany(s => s.Items).Count();
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h2 class="fw-bold mb-0">📋 Référentiel OWASP ASVS</h2>
+        <p class="text-muted small mb-0">@Model.Count chapitres · @Model.SelectMany(c => c.SubCategories).Count() sections · @totalItems exigences</p>
+    </div>
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <a asp-controller="Application" asp-action="Index" class="btn btn-primary">
+            Démarrer un audit →
+        </a>
+    }
+    else
+    {
+        <a asp-controller="Account" asp-action="Login" class="btn btn-primary">
+            🔐 Se connecter pour auditer
+        </a>
+    }
+</div>
+
+<div class="mb-3">
+    <input type="text" id="searchInput" class="form-control" placeholder="🔍 Rechercher une exigence (code, description)..." />
+</div>
+
+<div class="accordion" id="asvsAccordion">
+    @foreach (var category in Model)
+    {
+        int catItems = category.SubCategories.SelectMany(s => s.Items).Count();
+        <div class="accordion-item border-0 shadow-sm mb-3 chapter-block">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed fw-bold" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#cat-@category.Id">
+                    <span class="badge bg-dark me-2">@category.Code</span>
+                    @category.Name
+                    <span class="badge bg-secondary ms-2 fw-normal">@catItems exigences</span>
+                </button>
+            </h2>
+            <div id="cat-@category.Id" class="accordion-collapse collapse">
+                <div class="accordion-body p-0">
+                    @foreach (var sub in category.SubCategories.OrderBy(s => s.Code))
+                    {
+                        <div class="px-3 py-2 bg-light border-bottom">
+                            <strong class="text-primary">@sub.Code</strong> — @sub.Name
+                            <span class="badge bg-primary ms-1 fw-normal">@sub.Items.Count</span>
+                        </div>
+                        <table class="table table-sm table-hover mb-0">
+                            <tbody>
+                                @foreach (var item in sub.Items.OrderBy(i => i.Code))
+                                {
+                                    string levelClass = item.Level switch { "1" => "success", "2" => "warning", "3" => "danger", _ => "secondary" };
+                                    <tr class="item-row">
+                                        <td class="ps-4 text-nowrap" style="width:90px">
+                                            <code class="text-dark small">@item.Code</code>
+                                        </td>
+                                        <td class="small">@item.Description</td>
+                                        <td class="text-end pe-3" style="width:60px">
+                                            <span class="badge bg-@levelClass">L@(item.Level)</span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+<script>
+document.getElementById('searchInput').addEventListener('input', function () {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('.item-row').forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(q) ? '' : 'none';
+    });
+    if (q.length > 1) {
+        document.querySelectorAll('.accordion-collapse').forEach(c => {
+            const visible = c.querySelectorAll('.item-row[style=""]').length ||
+                !c.querySelectorAll('.item-row').length;
+            if (visible) { c.classList.add('show'); }
+        });
+    }
+});
+</script>
+}

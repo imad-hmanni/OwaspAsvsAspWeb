@@ -1,0 +1,26 @@
+@model ItemCreateViewModel
+@{ ViewData["Title"] = "Nouvelle exigence"; }
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-dark text-white"><h5 class="mb-0">+ Nouvelle exigence</h5></div>
+            <div class="card-body p-4">
+                <form asp-action="Create" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-3"><label asp-for="Code" class="form-label fw-semibold"></label><input asp-for="Code" class="form-control" placeholder="V1.1.1" /></div>
+                    <div class="mb-3"><label asp-for="Description" class="form-label fw-semibold"></label><textarea asp-for="Description" class="form-control" rows="3"></textarea></div>
+                    <div class="mb-3">
+                        <label asp-for="Level" class="form-label fw-semibold"></label>
+                        <select asp-for="Level" class="form-select">
+                            <option value="1">L1 — Basique</option>
+                            <option value="2">L2 — Standard</option>
+                            <option value="3">L3 — Avancé</option>
+                        </select>
+                    </div>
+                    <div class="mb-4"><label asp-for="SubCategoryId" class="form-label fw-semibold"></label><select asp-for="SubCategoryId" asp-items="ViewBag.SubCategories" class="form-select"></select></div>
+                    <div class="d-flex gap-2"><button type="submit" class="btn btn-primary flex-grow-1">Créer</button><a asp-action="Index" class="btn btn-outline-secondary">Annuler</a></div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

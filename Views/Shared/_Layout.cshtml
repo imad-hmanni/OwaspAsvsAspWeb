@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] — ASVS Security Auditor</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <style>
+        :root {
+            --brand-dark: #0d1b2a;
+            --brand-blue: #1565c0;
+            --brand-cyan: #00b4d8;
+            --brand-light: #f0f4f8;
+        }
+        body { background: var(--brand-light); font-family: 'Segoe UI', sans-serif; }
+        .navbar-brand-title { font-weight: 700; font-size: 1.1rem; letter-spacing: .5px; }
+        .navbar-brand-sub { font-size: .65rem; opacity: .75; display: block; line-height: 1; }
+        .main-nav { background: var(--brand-dark) !important; }
+        .main-nav .nav-link { color: rgba(255,255,255,.8) !important; font-size: .9rem; }
+        .main-nav .nav-link:hover, .main-nav .nav-link.active { color: var(--brand-cyan) !important; }
+        .main-nav .dropdown-menu { background: #16253a; border: none; border-top: 2px solid var(--brand-cyan); }
+        .main-nav .dropdown-item { color: rgba(255,255,255,.8); }
+        .main-nav .dropdown-item:hover { background: rgba(255,255,255,.08); color: #fff; }
+        .shield-icon { color: var(--brand-cyan); font-size: 1.5rem; margin-right: .4rem; }
+        .badge-role-admin { background: #d32f2f; }
+        .badge-role-auditor { background: #1565c0; }
+        .badge-role-viewer { background: #558b2f; }
+        footer { background: var(--brand-dark); color: rgba(255,255,255,.6); padding: 1.2rem 0; margin-top: 3rem; font-size: .85rem; }
+        .alert-toast { position: fixed; top: 70px; right: 1rem; z-index: 9999; min-width: 300px; }
+        @@media print { .main-nav, footer, .no-print { display: none !important; } body { background: white; } }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg main-nav shadow-sm">
+    <div class="container">
+        <a class="navbar-brand d-flex align-items-center text-decoration-none" asp-controller="Home" asp-action="Index">
+            <span class="shield-icon">🛡</span>
+            <span>
+                <span class="navbar-brand-title text-white">ASVS Security Auditor</span>
+                <span class="navbar-brand-sub text-white">OWASP Compliance Platform</span>
+            </span>
+        </a>
+
+        <button class="navbar-toggler border-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="mainNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="Home" asp-action="Index">Accueil</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="Public" asp-action="Index">Référentiel ASVS</a>
+                </li>
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="Application" asp-action="Index">Mes Applications</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="Dashboard" asp-action="Index">Dashboard</a>
+                    </li>
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                                ⚙ Administration
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" asp-controller="Admin" asp-action="Index">Vue d'ensemble</a></li>
+                                <li><a class="dropdown-item" asp-controller="Admin" asp-action="Users">Utilisateurs</a></li>
+                                <li><hr class="dropdown-divider border-secondary"></li>
+                                <li><a class="dropdown-item" asp-controller="Category" asp-action="Index">Chapitres</a></li>
+                                <li><a class="dropdown-item" asp-controller="SubCategory" asp-action="Index">Sections</a></li>
+                                <li><a class="dropdown-item" asp-controller="Item" asp-action="Index">Exigences</a></li>
+                            </ul>
+                        </li>
+                    }
+                }
+            </ul>
+
+            <ul class="navbar-nav ms-auto align-items-center">
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#" data-bs-toggle="dropdown">
+                            <span class="badge rounded-pill fs-6
+                                @(User.IsInRole("Admin") ? "badge-role-admin" :
+                                  User.IsInRole("Auditor") ? "badge-role-auditor" : "badge-role-viewer")">
+                                @(User.IsInRole("Admin") ? "Admin" : User.IsInRole("Auditor") ? "Auditor" : "Viewer")
+                            </span>
+                            <span class="text-white">@User.Identity.Name</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <form asp-controller="Account" asp-action="Logout" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="dropdown-item text-danger">Déconnexion</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
+                }
+                else
+                {
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="Account" asp-action="Login">Connexion</a>
+                    </li>
+                    <li class="nav-item ms-2">
+                        <a class="btn btn-sm btn-outline-info" asp-controller="Account" asp-action="Register">S'inscrire</a>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+</nav>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible alert-toast fade show shadow" role="alert">
+        <strong>✓</strong> @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible alert-toast fade show shadow" role="alert">
+        <strong>✗</strong> @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<main class="container py-4">
+    @RenderBody()
+</main>
+
+<footer>
+    <div class="container d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <span>© @DateTime.Now.Year — ASVS Security Auditor</span>
+        <span>Basé sur <strong class="text-white">OWASP ASVS</strong> — Framework de vérification de la sécurité applicative</span>
+    </div>
+</footer>
+
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="~/js/site.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", required: false)
+
+</body>
+</html>

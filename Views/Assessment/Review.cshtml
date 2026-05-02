@@ -1,0 +1,85 @@
+@model ReviewViewModel
+@{
+    ViewData["Title"] = $"Résultats — {Model.ApplicationName}";
+    var byCategory = Model.Items.GroupBy(i => i.CategoryCode).ToList();
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
+    <div>
+        <h2 class="fw-bold mb-0">📋 Résultats d'évaluation</h2>
+        <p class="text-muted mb-0">Application : <strong>@Model.ApplicationName</strong></p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap no-print">
+        <a asp-controller="Assessment" asp-action="Conduct" asp-route-applicationId="@Model.ApplicationId"
+           class="btn btn-outline-primary btn-sm">✏ Modifier</a>
+        <a asp-controller="Report" asp-action="Index" asp-route-applicationId="@Model.ApplicationId"
+           class="btn btn-primary btn-sm">📊 Rapport complet</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card border-0 bg-success text-white text-center p-3">
+            <div class="fs-2 fw-bold">@Model.ValidCount</div>
+            <div class="small">✓ Valides</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 bg-danger text-white text-center p-3">
+            <div class="fs-2 fw-bold">@Model.NotValidCount</div>
+            <div class="small">✗ Non valides</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 bg-secondary text-white text-center p-3">
+            <div class="fs-2 fw-bold">@Model.NotApplicableCount</div>
+            <div class="small">N/A</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 bg-warning text-dark text-center p-3">
+            <div class="fs-2 fw-bold">@Model.PendingCount</div>
+            <div class="small">⏳ En attente</div>
+        </div>
+    </div>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-bordered table-hover align-middle small">
+        <thead class="table-dark">
+            <tr>
+                <th>Code</th>
+                <th>Description</th>
+                <th>Chapitre</th>
+                <th>Niv.</th>
+                <th>Statut</th>
+                <th>Commentaire</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model.Items)
+            {
+                string sc = item.Status switch {
+                    AssessmentStatus.Valid => "table-success",
+                    AssessmentStatus.NotValid => "table-danger",
+                    AssessmentStatus.NotApplicable => "table-secondary",
+                    _ => "table-warning"
+                };
+                string badge = item.Status switch {
+                    AssessmentStatus.Valid => "<span class='badge bg-success'>✓ Valide</span>",
+                    AssessmentStatus.NotValid => "<span class='badge bg-danger'>✗ Non valide</span>",
+                    AssessmentStatus.NotApplicable => "<span class='badge bg-secondary'>N/A</span>",
+                    _ => "<span class='badge bg-warning text-dark'>⏳ En attente</span>"
+                };
+                <tr class="@sc">
+                    <td class="text-nowrap"><code>@item.ItemCode</code></td>
+                    <td>@item.ItemDescription</td>
+                    <td class="text-nowrap">@item.CategoryCode</td>
+                    <td class="text-center"><span class="badge bg-dark">L@(item.ItemLevel)</span></td>
+                    <td>@Html.Raw(badge)</td>
+                    <td class="text-muted">@item.Comment</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

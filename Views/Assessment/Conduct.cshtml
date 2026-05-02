@@ -1,0 +1,257 @@
+@model ConductViewModel
+@{
+    ViewData["Title"] = $"Évaluation — {Model.ApplicationName}";
+    var byCategory = Model.Items.GroupBy(i => new { i.CategoryCode, i.CategoryName }).ToList();
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
+    <div>
+        <h2 class="fw-bold mb-0">✏ Évaluation ASVS</h2>
+        <p class="text-muted mb-0">Application : <strong>@Model.ApplicationName</strong> — @Model.Items.Count exigences</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap no-print">
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="expandAll">Tout développer</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="collapseAll">Tout réduire</button>
+    </div>
+</div>
+
+<div class="alert alert-info py-2 small no-print">
+    <strong>Légende :</strong>
+    <span class="badge bg-success ms-2">✓ Valide</span>
+    <span class="badge bg-danger ms-2">✗ Non Valide</span>
+    <span class="badge bg-secondary ms-2">N/A</span>
+    <span class="badge bg-warning text-dark ms-2">⏳ En attente</span>
+    <span class="ms-3">🤖 = Explication IA</span>
+</div>
+
+<form asp-action="Save" method="post" id="assessmentForm">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="ApplicationId" />
+
+    <div class="accordion" id="conductAccordion">
+        @{int globalIndex = 0;}
+        @foreach (var catGroup in byCategory)
+        {
+            string catId = $"cat-{catGroup.Key.CategoryCode.Replace(".", "-")}";
+            int catCount = catGroup.Count();
+            int catDone = catGroup.Count(i => i.Status != AssessmentStatus.Pending);
+            <div class="accordion-item border-0 shadow-sm mb-3">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed fw-bold" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#@catId">
+                        <span class="badge bg-dark me-2">@catGroup.Key.CategoryCode</span>
+                        @catGroup.Key.CategoryName
+                        <span class="badge bg-secondary ms-2 fw-normal">@catDone/@catCount</span>
+                    </button>
+                </h2>
+                <div id="@catId" class="accordion-collapse collapse">
+                    <div class="accordion-body p-0">
+                        @foreach (var subGroup in catGroup.GroupBy(i => new { i.SubCategoryCode, i.SubCategoryName }))
+                        {
+                            <div class="px-3 py-2 bg-light border-top border-bottom">
+                                <strong class="text-primary">@subGroup.Key.SubCategoryCode</strong> — @subGroup.Key.SubCategoryName
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-sm align-middle mb-0">
+                                    <tbody>
+                                        @foreach (var item in subGroup)
+                                        {
+                                            int idx = globalIndex++;
+                                            string levelClass = item.ItemLevel switch { "1" => "success", "2" => "warning", "3" => "danger", _ => "secondary" };
+                                            <tr>
+                                                <input type="hidden" name="Items[@idx].ItemId" value="@item.ItemId" />
+                                                <input type="hidden" name="Items[@idx].Index" value="@idx" />
+                                                <td class="ps-3 text-nowrap" style="width:90px">
+                                                    <code class="small">@item.ItemCode</code>
+                                                    <span class="badge bg-@levelClass ms-1" style="font-size:.6rem">L@(item.ItemLevel)</span>
+                                                </td>
+                                                <td class="small" style="max-width:380px">@item.ItemDescription</td>
+                                                <td style="width:280px">
+                                                    <div class="btn-group w-100" role="group">
+                                                        <input type="radio" class="btn-check" name="Items[@idx].Status" id="v-@idx" value="1" @(item.Status == AssessmentStatus.Valid ? "checked" : "") />
+                                                        <label class="btn btn-outline-success btn-sm py-1" for="v-@idx">✓ Valide</label>
+
+                                                        <input type="radio" class="btn-check" name="Items[@idx].Status" id="nv-@idx" value="2" @(item.Status == AssessmentStatus.NotValid ? "checked" : "") />
+                                                        <label class="btn btn-outline-danger btn-sm py-1" for="nv-@idx">✗ Non valide</label>
+
+                                                        <input type="radio" class="btn-check" name="Items[@idx].Status" id="na-@idx" value="3" @(item.Status == AssessmentStatus.NotApplicable ? "checked" : "") />
+                                                        <label class="btn btn-outline-secondary btn-sm py-1" for="na-@idx">N/A</label>
+
+                                                        <input type="radio" class="btn-check" name="Items[@idx].Status" id="p-@idx" value="0" @(item.Status == AssessmentStatus.Pending ? "checked" : "") />
+                                                        <label class="btn btn-outline-warning btn-sm py-1" for="p-@idx">⏳</label>
+                                                    </div>
+                                                </td>
+                                                <td style="width:180px">
+                                                    <input type="text" name="Items[@idx].Comment" value="@item.Comment"
+                                                           class="form-control form-control-sm" placeholder="Commentaire..." />
+                                                </td>
+                                                <td class="pe-3" style="width:40px">
+                                                    <button type="button" class="btn btn-sm btn-outline-info border-0 ai-btn"
+                                                            data-item-id="@item.ItemId" data-item-code="@item.ItemCode"
+                                                            title="Explication IA">🤖</button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="d-flex justify-content-between mt-4 no-print">
+        <a asp-controller="Application" asp-action="Index" class="btn btn-outline-secondary">← Retour</a>
+        <button type="submit" class="btn btn-primary btn-lg px-5">💾 Sauvegarder l'évaluation</button>
+    </div>
+</form>
+
+<!-- Modal IA — Étape 1 : choix de la technologie -->
+<div class="modal fade" id="aiTechModal" tabindex="-1">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title">🤖 Assistant IA</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small mb-3">
+                    Choisissez la technologie pour une explication adaptée :
+                </p>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-primary tech-choice" data-tech="ASP.NET Core / C#">⚙ ASP.NET Core / C#</button>
+                    <button class="btn btn-outline-warning tech-choice" data-tech="Java / Spring Boot">☕ Java / Spring Boot</button>
+                    <button class="btn btn-outline-success tech-choice" data-tech="Python / Django / Flask">🐍 Python (Django / Flask)</button>
+                    <button class="btn btn-outline-info tech-choice" data-tech="Node.js / Express">🟢 Node.js / Express</button>
+                    <button class="btn btn-outline-danger tech-choice" data-tech="PHP / Laravel">🐘 PHP / Laravel</button>
+                    <button class="btn btn-outline-secondary tech-choice" data-tech="React / Angular / Vue">⚛ React / Angular / Vue</button>
+                    <button class="btn btn-outline-dark tech-choice" data-tech="Go">🐹 Go</button>
+                </div>
+                <div class="mt-3">
+                    <label class="form-label small text-muted">Autre technologie :</label>
+                    <div class="input-group input-group-sm">
+                        <input type="text" id="customTech" class="form-control" placeholder="ex: Ruby on Rails, Rust…" />
+                        <button class="btn btn-primary" id="customTechBtn">Analyser</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal IA — Étape 2 : résultat -->
+<div class="modal fade" id="aiResultModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <div>
+                    <h5 class="modal-title mb-0">🤖 Assistant IA — <span id="aiItemCode"></span></h5>
+                    <small class="text-white opacity-75">Technologie : <span id="aiTechLabel"></span></small>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="aiModalBody">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary"></div>
+                    <p class="mt-2 text-muted">DeepSeek analyse l'exigence…</p>
+                </div>
+            </div>
+            <div class="modal-footer no-print">
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="changeTechBtn">
+                    ← Changer de technologie
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+// Expand/Collapse all
+document.getElementById('expandAll').addEventListener('click', () =>
+    document.querySelectorAll('.accordion-collapse').forEach(c => new bootstrap.Collapse(c, {show: true})));
+document.getElementById('collapseAll').addEventListener('click', () =>
+    document.querySelectorAll('.accordion-collapse').forEach(c => new bootstrap.Collapse(c, {show: false})));
+
+// ── AI Assistant (2-step modal) ────────────────────────────────────────────
+const techModal   = new bootstrap.Modal(document.getElementById('aiTechModal'));
+const resultModal = new bootstrap.Modal(document.getElementById('aiResultModal'));
+
+let currentItemId   = null;
+let currentItemCode = null;
+
+// Step 1 : click AI button → show technology picker
+document.querySelectorAll('.ai-btn').forEach(btn => {
+    btn.addEventListener('click', function () {
+        currentItemId   = this.dataset.itemId;
+        currentItemCode = this.dataset.itemCode;
+        document.getElementById('customTech').value = '';
+        techModal.show();
+    });
+});
+
+// Step 2 : choose a preset technology
+document.querySelectorAll('.tech-choice').forEach(btn => {
+    btn.addEventListener('click', function () {
+        techModal.hide();
+        callAiApi(currentItemId, currentItemCode, this.dataset.tech);
+    });
+});
+
+// Step 2 : custom technology
+document.getElementById('customTechBtn').addEventListener('click', function () {
+    const tech = document.getElementById('customTech').value.trim();
+    if (!tech) return;
+    techModal.hide();
+    callAiApi(currentItemId, currentItemCode, tech);
+});
+
+// "Change technology" button in result modal
+document.getElementById('changeTechBtn').addEventListener('click', function () {
+    resultModal.hide();
+    setTimeout(() => techModal.show(), 300);
+});
+
+async function callAiApi(itemId, itemCode, technology) {
+    document.getElementById('aiItemCode').textContent = itemCode;
+    document.getElementById('aiTechLabel').textContent = technology;
+    document.getElementById('aiModalBody').innerHTML =
+        `<div class="text-center py-4">
+            <div class="spinner-border text-primary"></div>
+            <p class="mt-2 text-muted">DeepSeek analyse <strong>${itemCode}</strong> pour <strong>${technology}</strong>…</p>
+         </div>`;
+    resultModal.show();
+
+    try {
+        const res  = await fetch(`/Assessment/AiExplain?itemId=${itemId}&technology=${encodeURIComponent(technology)}`);
+        const data = await res.json();
+
+        if (data.success) {
+            const practices = (data.bestPractices || []).map(p => `<li class="mb-1">${p}</li>`).join('');
+            document.getElementById('aiModalBody').innerHTML = `
+                <div class="mb-3 p-3 bg-primary bg-opacity-10 rounded">
+                    <h6 class="fw-bold text-primary">💡 Explication</h6>
+                    <p class="mb-0">${data.explanation}</p>
+                </div>
+                <div class="mb-3 p-3 bg-danger bg-opacity-10 rounded">
+                    <h6 class="fw-bold text-danger">⚠ Vulnérabilité type en ${technology}</h6>
+                    <p class="mb-0">${data.vulnerability}</p>
+                </div>
+                <div class="p-3 bg-success bg-opacity-10 rounded">
+                    <h6 class="fw-bold text-success">✅ Bonnes pratiques (${technology})</h6>
+                    <ul class="mb-0">${practices}</ul>
+                </div>`;
+        } else {
+            document.getElementById('aiModalBody').innerHTML =
+                `<div class="alert alert-warning"><strong>Erreur :</strong> ${data.error || 'Réponse invalide de l\'API.'}</div>`;
+        }
+    } catch (e) {
+        document.getElementById('aiModalBody').innerHTML =
+            `<div class="alert alert-danger">Erreur de connexion : ${e.message}</div>`;
+    }
+}
+</script>
+}

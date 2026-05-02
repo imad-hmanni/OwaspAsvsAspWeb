@@ -1,0 +1,156 @@
+@model ReportViewModel
+@{
+    ViewData["Title"] = $"Rapport — {Model.ApplicationName}";
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2 no-print">
+    <div>
+        <h2 class="fw-bold mb-0">📊 Rapport de conformité ASVS</h2>
+        <p class="text-muted mb-0">Généré le @Model.GeneratedAt.ToString("dd/MM/yyyy à HH:mm")</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <button onclick="window.print()" class="btn btn-outline-dark btn-sm">🖨 Imprimer / PDF</button>
+        <a asp-controller="Export" asp-action="Csv" asp-route-applicationId="@Model.ApplicationId"
+           class="btn btn-outline-success btn-sm">📥 Export CSV</a>
+        <a asp-controller="Assessment" asp-action="Conduct" asp-route-applicationId="@Model.ApplicationId"
+           class="btn btn-outline-primary btn-sm">✏ Modifier</a>
+    </div>
+</div>
+
+<!-- Header card (print-friendly) -->
+<div class="card border-0 shadow-sm mb-4 border-start border-5 border-@Model.RiskColor">
+    <div class="card-body">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h4 class="fw-bold mb-1">@Model.ApplicationName</h4>
+                @if (!string.IsNullOrEmpty(Model.ApplicationDescription))
+                {
+                    <p class="text-muted mb-2">@Model.ApplicationDescription</p>
+                }
+                <div class="d-flex flex-wrap gap-3 small text-muted">
+                    <span>📦 @Model.TotalRequirements exigences totales</span>
+                    <span>✓ @Model.ValidCount valides</span>
+                    <span>✗ @Model.NotValidCount non valides</span>
+                    <span>— @Model.NotApplicableCount N/A</span>
+                    <span>⏳ @Model.PendingCount en attente</span>
+                </div>
+            </div>
+            <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                <div class="display-5 fw-bold text-@Model.RiskColor">@Model.CompliancePercentage%</div>
+                <span class="badge bg-@Model.RiskColor fs-6">Risque : @Model.RiskLevel</span>
+            </div>
+        </div>
+        <div class="progress mt-3" style="height:12px">
+            <div class="progress-bar bg-@Model.RiskColor" style="width:@((int)Model.CompliancePercentage)%">
+                @Model.CompliancePercentage%
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts row -->
+<div class="row g-4 mb-4 no-print">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white border-bottom fw-semibold small">Répartition des statuts</div>
+            <div class="card-body d-flex align-items-center justify-content-center">
+                <canvas id="statusChart" style="max-height:180px"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white border-bottom fw-semibold small">Conformité par chapitre (%)</div>
+            <div class="card-body">
+                <canvas id="catChart" style="max-height:180px"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recommendations -->
+@if (Model.Recommendations.Any())
+{
+    <div class="card border-0 shadow-sm mb-4 border-start border-5 border-warning">
+        <div class="card-header bg-white border-bottom fw-semibold">⚠ Recommandations</div>
+        <div class="card-body">
+            <ul class="mb-0">
+                @foreach (var rec in Model.Recommendations)
+                {
+                    <li class="mb-1">@rec</li>
+                }
+            </ul>
+        </div>
+    </div>
+}
+
+<!-- Category breakdown table -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-dark text-white fw-semibold">Détail par chapitre</div>
+    <div class="card-body p-0">
+        <table class="table table-hover align-middle mb-0 small">
+            <thead class="table-light">
+                <tr>
+                    <th>Chapitre</th>
+                    <th>Total</th>
+                    <th class="text-success">Valides</th>
+                    <th class="text-danger">Non valides</th>
+                    <th>N/A</th>
+                    <th>En attente</th>
+                    <th style="width:160px">Conformité</th>
+                    <th>Risque</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var cat in Model.CategoryBreakdown.OrderBy(c => c.Code))
+                {
+                    <tr>
+                        <td><strong>@cat.Code</strong> — @cat.Name</td>
+                        <td>@cat.TotalItems</td>
+                        <td class="text-success fw-semibold">@cat.ValidCount</td>
+                        <td class="text-danger fw-semibold">@cat.NotValidCount</td>
+                        <td class="text-muted">@cat.NotApplicableCount</td>
+                        <td class="text-muted">@cat.PendingCount</td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="progress flex-grow-1" style="height:6px">
+                                    <div class="progress-bar bg-@cat.RiskColor" style="width:@((int)cat.CompliancePercentage)%"></div>
+                                </div>
+                                <span class="text-nowrap">@cat.CompliancePercentage%</span>
+                            </div>
+                        </td>
+                        <td><span class="badge bg-@cat.RiskColor">@(cat.RiskColor switch { "success" => "Faible", "warning" => "Moyen", _ => "Élevé" })</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+new Chart(document.getElementById('statusChart'), {
+    type: 'doughnut',
+    data: {
+        labels: ['Valide','Non valide','N/A','En attente'],
+        datasets: [{ data: [@Model.ValidCount,@Model.NotValidCount,@Model.NotApplicableCount,@Model.PendingCount],
+            backgroundColor: ['#198754','#dc3545','#6c757d','#ffc107'], borderWidth: 2 }]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+});
+
+const catLabels = [@Html.Raw(string.Join(",", Model.CategoryBreakdown.OrderBy(c => c.Code).Select(c => $"\"{c.Code}\"")))];
+const catData   = [@Html.Raw(string.Join(",", Model.CategoryBreakdown.OrderBy(c => c.Code).Select(c => c.CompliancePercentage.ToString(System.Globalization.CultureInfo.InvariantCulture))))];
+new Chart(document.getElementById('catChart'), {
+    type: 'bar',
+    data: {
+        labels: catLabels,
+        datasets: [{ label: '%', data: catData,
+            backgroundColor: catData.map(v => v >= 80 ? '#198754' : v >= 50 ? '#ffc107' : '#dc3545'),
+            borderRadius: 4 }]
+    },
+    options: { responsive: true, scales: { y: { min:0, max:100 } }, plugins: { legend: { display: false } } }
+});
+</script>
+}

@@ -1,0 +1,33 @@
+@model List<SubCategory>
+@{ ViewData["Title"] = "Sections ASVS"; }
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold mb-0">Sections ASVS (@Model.Count)</h2>
+    <a asp-action="Create" class="btn btn-primary">+ Nouvelle section</a>
+</div>
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover align-middle mb-0 small">
+            <thead class="table-dark">
+                <tr><th>Code</th><th>Nom</th><th>Chapitre</th><th class="text-end">Actions</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var s in Model)
+                {
+                    <tr>
+                        <td><code>@s.Code</code></td>
+                        <td>@s.Name</td>
+                        <td>@s.Category?.Name</td>
+                        <td class="text-end">
+                            <a asp-action="Edit" asp-route-id="@s.Id" class="btn btn-sm btn-outline-secondary">⚙</a>
+                            <form asp-action="Delete" asp-route-id="@s.Id" method="post" class="d-inline"
+                                  onsubmit="return confirm('Supprimer ?')">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-outline-danger">🗑</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

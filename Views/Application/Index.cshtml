@@ -1,0 +1,63 @@
+@model List<ApplicationListItemViewModel>
+@{ ViewData["Title"] = "Mes Applications"; }
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold mb-0">📁 Mes Applications</h2>
+    <a asp-action="Create" class="btn btn-primary">+ Nouvelle application</a>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="text-center py-5 text-muted">
+        <div class="fs-1 mb-2">📂</div>
+        <p>Aucune application. Créez-en une pour commencer un audit.</p>
+        <a asp-action="Create" class="btn btn-primary">Créer ma première application</a>
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var app in Model)
+        {
+            string riskColor = app.RiskLevel switch { "Faible" => "success", "Moyen" => "warning", "Élevé" => "danger", _ => "secondary" };
+            int progress = (int)app.CompliancePercentage;
+            <div class="col-md-6 col-lg-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center bg-white border-bottom">
+                        <h6 class="fw-bold mb-0 text-truncate">@app.Name</h6>
+                        <span class="badge bg-@riskColor text-nowrap ms-2">@app.RiskLevel</span>
+                    </div>
+                    <div class="card-body">
+                        @if (!string.IsNullOrEmpty(app.Description))
+                        {
+                            <p class="text-muted small mb-3">@app.Description</p>
+                        }
+                        <div class="mb-2 d-flex justify-content-between small">
+                            <span class="text-muted">Conformité</span>
+                            <strong>@app.CompliancePercentage%</strong>
+                        </div>
+                        <div class="progress mb-3" style="height:8px">
+                            <div class="progress-bar bg-@riskColor" style="width:@progress%"></div>
+                        </div>
+                        <div class="d-flex justify-content-between small text-muted">
+                            <span>@app.AssessedItems / @app.TotalItems évalués</span>
+                            <span>@app.CreatedAt.ToString("dd/MM/yyyy")</span>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-white d-flex gap-2 flex-wrap">
+                        <a asp-controller="Assessment" asp-action="Conduct" asp-route-applicationId="@app.Id"
+                           class="btn btn-sm btn-primary flex-grow-1">✏ Évaluer</a>
+                        <a asp-controller="Report" asp-action="Index" asp-route-applicationId="@app.Id"
+                           class="btn btn-sm btn-outline-info flex-grow-1">📊 Rapport</a>
+                        <a asp-action="Edit" asp-route-id="@app.Id" class="btn btn-sm btn-outline-secondary">⚙</a>
+                        <form asp-action="Delete" asp-route-id="@app.Id" method="post" class="d-inline"
+                              onsubmit="return confirm('Supprimer @app.Name ?')">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm btn-outline-danger">🗑</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}

@@ -1,0 +1,62 @@
+@{
+    ViewData["Title"] = "Accueil";
+}
+
+<div class="text-center py-5">
+    <div class="display-1 mb-3">🛡</div>
+    <h1 class="display-5 fw-bold text-dark mb-2">ASVS Security Auditor</h1>
+    <p class="lead text-muted mb-4">Plateforme professionnelle d'audit de conformité OWASP ASVS</p>
+    <div class="d-flex justify-content-center gap-3 flex-wrap">
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <a asp-controller="Dashboard" asp-action="Index" class="btn btn-primary btn-lg px-4">
+                📊 Mon Dashboard
+            </a>
+            <a asp-controller="Application" asp-action="Index" class="btn btn-outline-primary btn-lg px-4">
+                📁 Mes Applications
+            </a>
+        }
+        else
+        {
+            <a asp-controller="Account" asp-action="Login" class="btn btn-primary btn-lg px-4">
+                🔐 Se connecter
+            </a>
+            <a asp-controller="Account" asp-action="Register" class="btn btn-outline-primary btn-lg px-4">
+                ✍ S'inscrire
+            </a>
+        }
+        <a asp-controller="Public" asp-action="Index" class="btn btn-outline-secondary btn-lg px-4">
+            📋 Référentiel ASVS
+        </a>
+    </div>
+</div>
+
+<div class="row g-4 mt-4">
+    <div class="col-md-4">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center p-4">
+                <div class="fs-1 mb-3">📋</div>
+                <h5 class="fw-bold">Référentiel ASVS Complet</h5>
+                <p class="text-muted small">Accédez aux 286 exigences OWASP ASVS organisées par chapitres et niveaux (L1, L2, L3).</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center p-4">
+                <div class="fs-1 mb-3">✅</div>
+                <h5 class="fw-bold">Audit Guidé</h5>
+                <p class="text-muted small">Évaluez chaque exigence (Valide, Non Valide, Non Applicable, En attente) et ajoutez des commentaires.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center p-4">
+                <div class="fs-1 mb-3">📊</div>
+                <h5 class="fw-bold">Rapports & Visualisation</h5>
+                <p class="text-muted small">Générez des rapports de conformité avec score global, analyse par chapitre et niveau de risque.</p>
+            </div>
+        </div>
+    </div>
+</div>
