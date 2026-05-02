@@ -5,7 +5,20 @@ using WebApplicationAsp.Entities;
 using WebApplicationAsp.Repository;
 using WebApplicationAsp.Services;
 
+using DotNetEnv;
+
+Env.Load(); // ⬅️ charge le fichier .env
+
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Configuration.AddEnvironmentVariables();
+
+// 3️⃣ DEBUG (TEMPORAIRE)
+Console.WriteLine(
+    builder.Configuration["HuggingFace:ApiKey"] is null
+        ? "❌ API KEY NON LUE"
+        : "✅ API KEY BIEN LUE"
+);
 
 // ========================
 // SERVICES
